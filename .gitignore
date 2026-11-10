@@ -1,3 +1,7 @@
 site/
 .venv/
 __pycache__/
+practice/pi-agent/.pi/
+practice/pi-agent/images/S1-安装启动.png
+practice/pi-agent/images/S6-03-插件试用回答.png
+practice/pi-agent/images/test-image.png

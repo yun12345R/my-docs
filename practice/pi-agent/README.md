@@ -89,7 +89,7 @@ pi.cmd # 单独重新启动，检查加载
 
 ## 6. 安装并调用PPT Skill（选做）
 
-让Pi从 [anthropics/skills](https://github.com/anthropics/skills/tree/2c5958ecac7cee2b583967a2c4981d0f4a75c579/skills/pptx) 获取完整 `skills/pptx`，安装至本项目 `.pi/skills/pptx`。源 commit：`2c5958ecac7cee2b583967a2c4981d0f4a75c579`。
+让Pi从 [anthropics/skills](https://github.com/anthropics/skills/tree/2c5958ecac7cee2b583967a2c4981d0f4a75c579/skills/pptx) 获取完整 `skills/pptx`，安装至本机练习目录的 `.pi/skills/pptx`。源 commit：`2c5958ecac7cee2b583967a2c4981d0f4a75c579`。
 
 安装共56个文件，包含 `SKILL.md`、`LICENSE.txt` 和 `scripts`；与D盘临时克隆的源目录逐文件校验一致。退出并重新启动Pi后，`[Skills]` 出现 `pptx`，再执行：
 
