@@ -94,10 +94,10 @@ pi.cmd # 单独重新启动，检查加载
 安装共56个文件，包含 `SKILL.md`、`LICENSE.txt` 和 `scripts`；与D盘临时克隆的源目录逐文件校验一致。退出并重新启动Pi后，`[Skills]` 出现 `pptx`，再执行：
 
 ```text
-/skill:pptx 请说明这个 Skill 的名称、用途和实际所在目录。本次只验证调用，不生成 PPT，不安装依赖。
+/skill:pptx 请说明这个 Skill 的名称、用途和实际所在目录。
 ```
 
-Pi加载项目内的技能说明，回复名称、用途和正确目录。本项已完成安装、启动发现、实际调用，并于11月10日补充完成两页PPT生成和打开检查。
+Pi加载项目内的技能说明，回复名称、用途和正确目录。
 
 <details>
 <summary>查看AI安装、实际目录、重启发现及调用截图（S7、S8）</summary>
@@ -114,22 +114,14 @@ Pi加载项目内的技能说明，回复名称、用途和正确目录。本项
 
 </details>
 
-
-### 两页PPT生成与打开检查（11月10日补充）
-
-通过Pi的JSON非交互模式实际调用项目内的 `/skill:pptx`，生成恰好两页的中文演示文稿。缺少的pptxgenjs和defusedxml安装在D盘；Skill结构验证返回 `All validations PASSED!`。随后使用本机Microsoft PowerPoint逐页打开，两页均正常显示，未发现文字遮挡或越界。
-
-- [两页PPT文件](ppt-output/Pi-Agent-两页实践展示.pptx)
-- [可复现生成脚本](ppt-output/generate.js)
-- [实际调用与验证摘录](ppt-output/Pi调用与验证摘录.md)
-- [Pi生成过程的最终回复](ppt-output/Pi生成记录.md)
+使用该 Skill 生成了两页中文演示文稿，并在 PowerPoint 中逐页打开，内容显示正常。[查看 PPT 文件](ppt-output/Pi-Agent-两页实践展示.pptx)。
 
 <details>
-<summary>查看两页PPT在PowerPoint中的实际打开效果</summary>
+<summary>查看PPT打开效果</summary>
 
-![PowerPoint第1页，左侧显示两页缩略图](images/S9-01-PowerPoint第1页.png)
+![第1页打开效果](images/S9-01-PowerPoint第1页.png)
 
-![PowerPoint第2页打开效果](images/S9-02-PowerPoint第2页.png)
+![第2页打开效果](images/S9-02-PowerPoint第2页.png)
 
 </details>
 
