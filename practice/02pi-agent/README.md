@@ -55,6 +55,8 @@ git status --short
 
 ![packages 目录](Image/04-packages-directory.png)
 
+本版本另有 `evals` 目录，但不在根构建列表中，本次分析作业要求的 11 个模块。
+
 ## 二、构建顺序与模块分析
 
 ### 1. 构建顺序
