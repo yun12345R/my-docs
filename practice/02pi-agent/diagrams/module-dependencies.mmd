@@ -1,0 +1,38 @@
+flowchart TB
+  subgraph L3["L3"]
+    env["env · 远程执行环境"]
+    coding_agent["coding-agent · 命令行编程助手"]
+  end
+  subgraph L2["L2"]
+    durable["durable · 持久化 Agent 运行框架"]
+    agent["agent · Agent 循环与工具执行"]
+  end
+  subgraph L1["L1"]
+    chord["chord · 对象、状态与跨进程基础设施"]
+    ai["ai · 模型接口与工具参数校验"]
+  end
+  subgraph L0["L0"]
+    telemetry["telemetry · 运行追踪与指标"]
+    schema["schema · 数据规则与校验"]
+    tui["tui · 终端交互组件"]
+    codemode["codemode · 受限 JavaScript 执行"]
+    mcp["mcp · MCP 客户端与传输"]
+  end
+  chord --> schema
+  chord --> telemetry
+  ai --> schema
+  ai --> telemetry
+  durable --> chord
+  durable --> ai
+  durable --> codemode
+  durable --> schema
+  durable --> telemetry
+  env --> chord
+  env --> durable
+  agent --> ai
+  agent --> schema
+  coding_agent --> agent
+  coding_agent --> ai
+  coding_agent --> codemode
+  coding_agent --> mcp
+  coding_agent --> tui
