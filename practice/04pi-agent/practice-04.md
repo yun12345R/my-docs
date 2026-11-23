@@ -19,7 +19,7 @@
  const response = await streamFunction(config.model, llmContext, {
 ```
 
-S1、S2 根据本次运行保存的实际源码生成行号视图。
+S1、S2 为 VS Code 原始截图，分别显示第 413 行和第 285 行的日志。
 
 ![S1 模型请求前的日志](Image/S1-model-request.png)
 
@@ -36,13 +36,15 @@ Built packages\coding-agent\dist\bundle (84 files, 9.4 MiB)
 构建进程退出码 0
 ```
 
-![S3 构建命令和退出码](Image/S3-S5-S6-terminal.png)
+![S3a 在项目根目录执行构建命令](Image/S3a-build-command.png)
 
-S3 的命令来自原始构建日志，退出码 `0` 来自实际终端截图。
+![S3b 构建完成且退出码为 0](Image/S3b-build-exit-code.png)
 
-编译后的 `packages/coding-agent/dist/cli.js` 输出版本号 `1.5.2`。下图是同一源码的本地副本启动交互界面时，从实际终端输出回放得到的画面。正式对比实验在小组仓库目录用编译后的 CLI 分两次运行，使用 JSON 模式记录工具事件。
+S3a、S3b 分别记录构建开始和结束。构建完成后，在同一 PowerShell 窗口执行 `$LASTEXITCODE`，返回 `0`。
 
-![S4：Pi 交互界面的启动记录](Image/S4-terminal-replay.png)
+编译后的 `packages/coding-agent/dist/cli.js` 输出版本号 `1.5.2`。下图是运行 `node .\packages\coding-agent\dist\cli.js` 后的 PowerShell 原始截图，显示启动命令和 Pi 交互界面。正式对比实验在小组仓库目录用编译后的 CLI 分两次运行，使用 JSON 模式记录工具事件。
+
+![S4：Pi 交互界面的启动记录](Image/S4-pi-startup.png)
 
 ## 三、两次会话
 
