@@ -19,6 +19,12 @@
  const response = await streamFunction(config.model, llmContext, {
 ```
 
+S1、S2 根据本次运行保存的实际源码生成行号视图。
+
+![S1 模型请求前的日志](Image/S1-model-request.png)
+
+![S2 工具结果入上下文后的日志](Image/S2-tool-result.png)
+
 ## 二、重新编译并启动
 
 在小组 Pi 仓库根目录运行 `npm.cmd run build`。实际输出如下。
@@ -30,6 +36,10 @@ Built packages\coding-agent\dist\bundle (84 files, 9.4 MiB)
 构建进程退出码 0
 ```
 
+![S3 构建命令和退出码](Image/S3-S5-S6-terminal.png)
+
+S3 的命令来自原始构建日志，退出码 `0` 来自实际终端截图。
+
 编译后的 `packages/coding-agent/dist/cli.js` 输出版本号 `1.5.2`。下图是同一源码的本地副本启动交互界面时，从实际终端输出回放得到的画面。正式对比实验在小组仓库目录用编译后的 CLI 分两次运行，使用 JSON 模式记录工具事件。
 
 ![S4：Pi 交互界面的启动记录](Image/S4-terminal-replay.png)
@@ -37,8 +47,6 @@ Built packages\coding-agent\dist\bundle (84 files, 9.4 MiB)
 ## 三、两次会话
 
 两次都使用 `deepseek-v4-pro`，每次启动一个新会话。项目根目录的 `practice4.txt` 只写了一行实验代号 `P4-Maple-726`，会话 B 的提示词只给出文件名。
-
-![S3、S5、S6：构建结束及两次会话的实际输出](Image/S3-S5-S6-terminal.png)
 
 ### A　直接问答
 
@@ -53,6 +61,8 @@ Built packages\coding-agent\dist\bundle (84 files, 9.4 MiB)
 Pi 回复
 
 > Git 分支是同一个代码仓库中一条独立、可自由切换的提交历史线，让你能并行开发不同功能而互不干扰，之后还可合并回主线。
+
+![S5 会话 A 的实际终端输出](Image/S5-session-a.png)
 
 ### B　读取文件
 
@@ -69,6 +79,8 @@ Pi 回复
 Pi 回复
 
 > 文件中的实验代号是：**P4-Maple-726**
+
+![S6 会话 B 的实际终端输出](Image/S6-session-b.png)
 
 ## 四、运行流程
 
