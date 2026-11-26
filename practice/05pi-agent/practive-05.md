@@ -45,29 +45,32 @@ sequenceDiagram
     participant ReadTool as read 工具<br/>(core/tools/read.ts)
 
     User->>UI: 输入提示词并回车
-    Note over UI: interactive-mode.ts: defaultEditor.onSubmit(text)<br/>→ onInputCallback(text)
-    UI->>UI: agent-session.ts: AgentSession.prompt(text)<br/>→ _preparePrompt() → _startRun()
+    Note over UI: interactive-mode.ts: defaultEditor.onSubmit(text)<br/>→ onInputCallback(text) 唤醒 run() 中的 getUserInput()
+    UI->>UI: interactive-mode.ts → agent-session.ts:<br/>this.session.prompt(userInput) → _preparePrompt() → _startRun()
     UI->>Agent: this.agent.prompt(messages)
 
     Note over Agent: agent.ts: Agent.prompt()<br/>→ runPromptMessages() → runAgentLoop()
     Agent->>Agent: agent-loop.ts: runLoop() 第 1 轮<br/>streamAssistantResponse()<br/>transformContext() → convertToLlm()
 
     Agent->>LLM: streamFunction(config.model, llmContext, options)
-    Note over LLM: sdk.ts → model-runtime.ts: modelRuntime.streamSimple()<br/>→ openai-completions.ts: streamSimple / stream()<br/>→ client.chat.completions.create(params).withResponse()
-    LLM-->>Agent: SSE 流式响应 (stopReason="toolUse", toolCall: read)
+    LLM->>LLM: sdk.ts → model-runtime.ts: modelRuntime.streamSimple()<br/>→ openai-completions.ts: streamSimple / stream()<br/>适配器请求远端模型: client.chat.completions.create(params).withResponse()
+    LLM-->>LLM: 远端 DeepSeek API 返回第 1 次 SSE 流式响应<br/>(stopReason="toolUse", toolCall: read)
+    LLM-->>Agent: 返回包含 read toolCall 的 AssistantMessage
 
-    Agent->>Agent: agent-loop.ts: executeToolCalls()<br/>→ prepareToolCall() / validateToolArguments()
+    Agent->>Agent: agent-loop.ts: executeToolCalls()<br/>→ prepareToolCall() → validation.ts: validateToolArguments()
     Agent->>ReadTool: tool.execute(toolCallId, { path, offset, limit }, signal)
 
-    Note over ReadTool: read.ts 路径与读取分支核对:<br/>1. resolveReadPathAsync() → ops.access() (fsAccess)<br/>2. detectImageMimeType() → 非图片走文本分支<br/>3. isStreamableRange(offset, limit) 为 true<br/>   走流式读取: selectLinesFromStream(ops.createReadStream())<br/>   → readLocalFileChunks(): fsOpen(path,"r") → handle.createReadStream()<br/>   (仅当无 createReadStream / 非流式范围 / 图片时<br/>   才回退到 ops.readFile() → fsReadFile() 缓冲区读取)
+    ReadTool->>ReadTool: resolveReadPathAsync() → ops.access() (fsAccess)<br/>detectImageMimeType() → 非图片走文本分支<br/>isStreamableRange(offset, limit) === true<br/>→ selectLinesFromStream(ops.createReadStream())<br/>→ readLocalFileChunks(): fsOpen(path,"r") → handle.createReadStream()
+    Note over ReadTool: 核对结论：文本文件在流式范围内实际走流式读取；<br/>仅图片 / 无 createReadStream / 非流式范围时<br/>才回退到 ops.readFile() (fsReadFile) 缓冲区读取
 
-    ReadTool-->>Agent: 返回文件内容文本 (ToolResult)
+    ReadTool-->>Agent: 返回 handoff.txt 内容文本 (ToolResult)
     Agent->>Agent: currentContext.messages.push(toolResult)<br/>emit({ type: "turn_end", message, toolResults })
 
-    Agent->>Agent: agent-loop.ts: runLoop() 第 2 轮<br/>hasMoreToolCalls = true → streamAssistantResponse()<br/>(携带 user + toolCall + toolResult)
+    Agent->>Agent: agent-loop.ts: runLoop() 第 2 轮<br/>hasMoreToolCalls = true → streamAssistantResponse()<br/>(上下文已追加 toolCall + toolResult)
     Agent->>LLM: streamFunction(config.model, llmContext, options)
-    Note over LLM: openai-completions.ts:<br/>client.chat.completions.create(params).withResponse()<br/>向远端 DeepSeek API 发起第 2 次请求
-    LLM-->>Agent: SSE 流式返回最终回复文本 (stopReason="stop")
+    LLM->>LLM: openai-completions.ts: 适配器第 2 次请求远端模型<br/>client.chat.completions.create(params).withResponse()
+    LLM-->>LLM: 远端 DeepSeek API 返回第 2 次 SSE 流式响应 (stopReason="stop")
+    LLM-->>Agent: 持续产出文本增量事件与最终 AssistantMessage
 
     loop 流式片段到达
         Agent-->>UI: emit({ type: "message_update", message })
@@ -81,11 +84,12 @@ sequenceDiagram
 
 ### 3. 源码关键边界核对说明
 
-- **输入与调度入口**：`packages/coding-agent/src/modes/interactive/interactive-mode.ts` 中的 `this.defaultEditor.onSubmit` 先过滤 `/` 斜杠命令，普通文本通过 `onInputCallback(text)` 交给 `AgentSession.prompt()`（`packages/coding-agent/src/core/agent-session.ts`），经 `_preparePrompt()` 和 `_startRun()` 后调用 `this.agent.prompt(messages)`。
+- **输入与调度入口**：`packages/coding-agent/src/modes/interactive/interactive-mode.ts` 中的 `this.defaultEditor.onSubmit` 先过滤 `/` 斜杠命令，普通文本通过 `onInputCallback(text)` 唤醒主循环 `run()` 中等待的 `await this.getUserInput()`，随后调用 `await this.session.prompt(userInput)`（`packages/coding-agent/src/core/agent-session.ts`），经 `_preparePrompt()` 和 `_startRun()` 后调用 `this.agent.prompt(messages)`。
 - **Agent 主循环**：`packages/agent/src/agent.ts` 的 `Agent.prompt()` 将输入规范化后调用 `runPromptMessages()` → `runAgentLoop()`（`packages/agent/src/agent-loop.ts`）。每一轮循环内先调用 `streamAssistantResponse()` 请求模型，若返回包含 `toolCall`，则调用 `executeToolCalls()` 执行工具、把 `toolResult` 压入 `currentContext.messages`，随后再次进入 `streamAssistantResponse()` 发起第 2 次模型请求。
 - **`read` 工具文件系统读取方式核对（流式 vs 缓冲区）**：
   - 在 `packages/coding-agent/src/core/tools/read.ts` 中，`defaultReadOperations` 默认同时提供了 `createReadStream: readLocalFileChunks` 与 `readFile: fsReadFile`。
-  - 对于文本文件（如 `handoff.txt`），源码在读取分支判断 `ops.createReadStream && isStreamableRange(offset, limit)`：当未传 `offset`/`limit`（经参数校验后为 `undefined`）或为非负整数范围时，**实际走的是流式读取**，调用 `selectLinesFromStream(ops.createReadStream(absolutePath, { signal }), ...)`，底层在 `readLocalFileChunks()` 中通过 `fsOpen(path, "r")` 与 `handle.createReadStream({ end, autoClose: false })` 分块读取，避免整文件一次性加载进内存。
+  - 虽然模型在受约束采样下输出了 `{ offset: null, limit: null }`，但 `packages/agent/src/agent-loop.ts` 在执行前会调用 `packages/ai/src/utils/validation.ts` 的 `validateToolArguments()`（底层用 `pi-schema` 的 `compile(schema, { coerce: true }).parse()` 将省略可选字段的 `null` 清洗为 `undefined`）。
+  - 因此进入 `read.ts` 的文本分支时，`ops.createReadStream && isStreamableRange(offset, limit)` 为 `true`，**实际走的是流式读取**：调用 `selectLinesFromStream(ops.createReadStream(absolutePath, { signal }), ...)`，底层在 `readLocalFileChunks()` 中通过 `fsOpen(path, "r")` 与 `handle.createReadStream({ end, autoClose: false })` 分块读取，避免整文件一次性加载进内存。
   - 只有在图片文件（`mimeType` 命中）、自定义 `operations` 未提供 `createReadStream`、或传入非流式范围（如小数、负数 `limit`）时，才会走 `ops.readFile(absolutePath)`（`fsReadFile`）+ `selectLinesFromBuffer()` 的整文件缓冲区读取。
 - **回复显示位置**：`interactive-mode.ts` 通过 `subscribeToAgent()` 订阅 `this.session.subscribe(event => this.handleEvent(event))`。在 `handleEvent()` 中，`case "message_update"` 持续调用 `this.streamingComponent.updateContent(this.streamingMessage, true)` 与 `this.ui.requestRender()` 将流式文本实时渲染到终端；`case "message_end"` 调用 `this.streamingComponent.updateContent(this.streamingMessage, false)` 完成最终定稿显示。
 
